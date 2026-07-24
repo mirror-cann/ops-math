@@ -888,6 +888,16 @@
   </tr>
   <tr>
     <td>math</td>
+    <td><a href="../../math/fused_mul_add_nl2loss/README.md">fused_mul_add_nl2loss</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>×</td>
+    <td>√</td>
+    <td>AI Core</td>
+    <td>图融合内部算子，将Mul+AddN+L2Loss子图合并，逐元素计算y1=x1*x3[0]+x2，同时对x1全量平方归约得到标量y2=Σx1²/2。</td>
+  </tr>
+  <tr>
+    <td>math</td>
     <td><a href="../../math/gcd/README.md">gcd</a></td>
     <td>√</td>
     <td>√</td>
