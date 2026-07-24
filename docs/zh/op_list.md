@@ -2068,6 +2068,26 @@
   </tr>
   <tr>
     <td>math</td>
+    <td><a href="../../math/top_k_v2_d/README.md">top_k_v2_d</a></td>
+    <td>×</td>
+    <td>√</td>
+    <td>×</td>
+    <td>√</td>
+    <td>AI CPU</td>
+    <td>沿指定维度找出输入张量中最大或最小的k个元素及其索引，兼容TensorFlow TopKV2。</td>
+  </tr>
+  <tr>
+    <td>math</td>
+    <td><a href="../../math/top_k_pq_distance/README.md">top_k_pq_distance</a></td>
+    <td>×</td>
+    <td>×</td>
+    <td>×</td>
+    <td>√</td>
+    <td>AI CPU</td>
+    <td>基于分组极值剪枝的TopK距离计算，用于向量检索场景。</td>
+  </tr>
+  <tr>
+    <td>math</td>
     <td><a href="../../math/trace/README.md">trace</a></td>
     <td>√</td>
     <td>√</td>
@@ -2155,6 +2175,16 @@
     <td>√</td>
     <td>AI Core</td>
     <td>计算x * log(1 + y)，当x == 0时结果为0。支持broadcast。</td>
+  </tr>
+  <tr>
+    <td>math</td>
+    <td><a href="../../math/zeta/README.md">zeta</a></td>
+    <td>×</td>
+    <td>×</td>
+    <td>×</td>
+    <td>√</td>
+    <td>AI CPU</td>
+    <td>计算Hurwitz zeta函数 ζ(x, q)。</td>
   </tr>
   <tr>
     <td>math</td>
@@ -2825,6 +2855,16 @@
     <td>√</td>
     <td>AI Core</td>
     <td>将输入tensor的值搬运到输出tensor中。</td>
+  </tr>
+  <tr>
+    <td>conversion</td>
+    <td><a href="../../conversion/tile_with_axis/README.md">tile_with_axis</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>×</td>
+    <td>√</td>
+    <td>AI Core/AI CPU</td>
+    <td>沿指定维度复制输入Tensor数据，扩展输出Tensor。</td>
   </tr>
   <tr>
     <td>conversion</td>
