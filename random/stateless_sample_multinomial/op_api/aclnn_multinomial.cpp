@@ -59,12 +59,14 @@ static const std::initializer_list<op::DataType> ASCEND910_DTYPE_SUPPORT_LIST = 
 static const std::initializer_list<op::DataType> ASCEND910B_DTYPE_SUPPORT_LIST = {
     op::DataType::DT_FLOAT, op::DataType::DT_FLOAT16, op::DataType::DT_DOUBLE, op::DataType::DT_BF16};
 
-static inline bool CheckSocVersionGe910B(void) {
+static inline bool CheckSocVersionGe910B(void)
+{
     auto curArch = GetCurrentPlatformInfo().GetCurNpuArch();
     return curArch == NpuArch::DAV_2201 || IsRegBase(curArch);
 }
 
-static bool UseAicpuPath(const aclTensor* self, int64_t selfSize) {
+static bool UseAicpuPath(const aclTensor* self, int64_t selfSize)
+{
     if (IsRegBase()) {
         auto selfDtype = self->GetDataType();
         return selfDtype != op::DataType::DT_FLOAT && selfDtype != op::DataType::DT_FLOAT16 &&
@@ -73,7 +75,8 @@ static bool UseAicpuPath(const aclTensor* self, int64_t selfSize) {
     return !CheckSocVersionGe910B() || selfSize <= CPU_NPU_BOUNDARY;
 }
 
-static inline const std::initializer_list<op::DataType>& GetDtypeSupportList() {
+static inline const std::initializer_list<op::DataType>& GetDtypeSupportList()
+{
     if (CheckSocVersionGe910B()) {
         return ASCEND910B_DTYPE_SUPPORT_LIST;
     } else {
@@ -81,13 +84,15 @@ static inline const std::initializer_list<op::DataType>& GetDtypeSupportList() {
     }
 }
 
-static bool CheckNotNull(const aclTensor* self, const aclTensor* out) {
+static bool CheckNotNull(const aclTensor* self, const aclTensor* out)
+{
     OP_CHECK_NULL(self, return false);
     OP_CHECK_NULL(out, return false);
     return true;
 }
 
-static inline int64_t MakeWrapDim(int64_t dim, int64_t dimPostExpr) {
+static inline int64_t MakeWrapDim(int64_t dim, int64_t dimPostExpr)
+{
     // support dim=0
     if (dimPostExpr <= 0) {
         dimPostExpr = 1;
@@ -98,15 +103,17 @@ static inline int64_t MakeWrapDim(int64_t dim, int64_t dimPostExpr) {
     return dim;
 }
 
-static bool CheckDtypeValid(const aclTensor* self, const aclTensor* out) {
+static bool CheckDtypeValid(const aclTensor* self, const aclTensor* out)
+{
     auto supportList = GetDtypeSupportList();
     OP_CHECK_DTYPE_NOT_SUPPORT(self, supportList, return false);
     OP_CHECK_DTYPE_NOT_SUPPORT(out, {op::DataType::DT_INT64}, return false);
     return true;
 }
 
-static bool CheckDtypeValidTensor(
-    const aclTensor* self, const aclTensor* seedTensor, const aclTensor* offsetTensor, const aclTensor* out) {
+static bool CheckDtypeValidTensor(const aclTensor* self, const aclTensor* seedTensor, const aclTensor* offsetTensor,
+                                  const aclTensor* out)
+{
     auto supportList = GetDtypeSupportList();
     OP_CHECK_DTYPE_NOT_SUPPORT(self, supportList, return false);
     if (!(self->IsEmpty())) {
@@ -124,7 +131,8 @@ static bool CheckDtypeValidTensor(
     return true;
 }
 
-static bool CheckShape(const aclTensor* self, int64_t numsamples, const aclTensor* out) {
+static bool CheckShape(const aclTensor* self, int64_t numsamples, const aclTensor* out)
+{
     if (self->GetViewShape().GetDimNum() != DIM_NUM_ONE && self->GetViewShape().GetDimNum() != DIM_NUM_TWO) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Dim of self only can be 1 or 2.");
         return false;
@@ -137,22 +145,23 @@ static bool CheckShape(const aclTensor* self, int64_t numsamples, const aclTenso
     auto nCategories = out->GetViewShape().GetDim(dimNum - 1);
     if (nCategories != numsamples) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID,
-            "excepted the size of out at last dim must be equal with numsamples %ld, but got %ld.", numsamples,
-            nCategories);
+                "excepted the size of out at last dim must be equal with numsamples %ld, but got %ld.", numsamples,
+                nCategories);
         return false;
     }
     if (self->GetViewShape().GetDimNum() != DIM_NUM_ONE &&
         self->GetViewShape().GetDim(DIM_ZERO) != out->GetViewShape().GetDim(DIM_ZERO)) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID,
-            "excepted the size of out at first dim %ld must be equal with the size of self at first dim %ld when "
-            "dimNum > 1",
-            self->GetViewShape().GetDim(DIM_ZERO), out->GetViewShape().GetDim(DIM_ZERO));
+                "excepted the size of out at first dim %ld must be equal with the size of self at first dim %ld when "
+                "dimNum > 1",
+                self->GetViewShape().GetDim(DIM_ZERO), out->GetViewShape().GetDim(DIM_ZERO));
         return false;
     }
     return true;
 }
 
-static bool CheckValueRange(const aclTensor* self, int64_t numsamples, bool replacement) {
+static bool CheckValueRange(const aclTensor* self, int64_t numsamples, bool replacement)
+{
     if (numsamples <= 0) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Numsamples must > 0.");
         return false;
@@ -170,7 +179,8 @@ static bool CheckValueRange(const aclTensor* self, int64_t numsamples, bool repl
     return true;
 }
 
-static aclnnStatus CheckParams(const aclTensor* self, int64_t numsamples, bool replacement, const aclTensor* out) {
+static aclnnStatus CheckParams(const aclTensor* self, int64_t numsamples, bool replacement, const aclTensor* out)
+{
     CHECK_RET(CheckNotNull(self, out), ACLNN_ERR_PARAM_NULLPTR);
     CHECK_RET(CheckDtypeValid(self, out), ACLNN_ERR_PARAM_INVALID);
     CHECK_RET(CheckShape(self, numsamples, out), ACLNN_ERR_PARAM_INVALID);
@@ -178,9 +188,9 @@ static aclnnStatus CheckParams(const aclTensor* self, int64_t numsamples, bool r
     return ACLNN_SUCCESS;
 }
 
-static aclnnStatus CheckParamsTensor(
-    const aclTensor* self, int64_t numsamples, bool replacement, const aclTensor* seedTensor,
-    const aclTensor* offsetTensor, const aclTensor* out) {
+static aclnnStatus CheckParamsTensor(const aclTensor* self, int64_t numsamples, bool replacement,
+                                     const aclTensor* seedTensor, const aclTensor* offsetTensor, const aclTensor* out)
+{
     CHECK_RET(CheckNotNull(self, out), ACLNN_ERR_PARAM_NULLPTR);
     CHECK_RET(CheckDtypeValidTensor(self, seedTensor, offsetTensor, out), ACLNN_ERR_PARAM_INVALID);
     CHECK_RET(CheckShape(self, numsamples, out), ACLNN_ERR_PARAM_INVALID);
@@ -189,7 +199,8 @@ static aclnnStatus CheckParamsTensor(
 }
 
 const aclTensor* GetRandomUniformReplaceMent(int64_t numsamples, const int64_t seed, const int64_t offset,
-    aclOpExecutor* executor) {
+                                             aclOpExecutor* executor)
+{
     const int64_t randAShape[] = {numsamples};
     auto randAShapeArray = executor->AllocIntArray(randAShape, 1);
     auto low = executor->AllocScalar(0.0f);
@@ -199,8 +210,9 @@ const aclTensor* GetRandomUniformReplaceMent(int64_t numsamples, const int64_t s
     return randomUniform;
 }
 
-const aclTensor* GetRandomUniformReplaceMentTensor(
-    int64_t numsamples, const aclTensor* seed, const aclTensor* offset, aclOpExecutor* executor) {
+const aclTensor* GetRandomUniformReplaceMentTensor(int64_t numsamples, const aclTensor* seed, const aclTensor* offset,
+                                                   aclOpExecutor* executor)
+{
     // concat
     FVector<uint64_t> zeroVector = {static_cast<uint64_t>(0)};
     auto zeroTensor = executor->ConvertToTensor(zeroVector.data(), zeroVector.size(), offset->GetDataType());
@@ -221,9 +233,10 @@ const aclTensor* GetRandomUniformReplaceMentTensor(
     return randomUniform;
 }
 
-const aclTensor* RunMultinomialReplaceMent(
-    const aclTensor* selfContiguous, int64_t numsamples, const aclTensor* randomUniform, const aclTensor* out,
-    aclOpExecutor* executor) {
+const aclTensor* RunMultinomialReplaceMent(const aclTensor* selfContiguous, int64_t numsamples,
+                                           const aclTensor* randomUniform, const aclTensor* out,
+                                           aclOpExecutor* executor)
+{
     // trun weight into probability
     int64_t dimNum = static_cast<int64_t>(selfContiguous->GetViewShape().GetDimNum());
     int64_t lastDim = MakeWrapDim(-1, dimNum);
@@ -274,9 +287,10 @@ const aclTensor* RunMultinomialReplaceMent(
     return multinomialOut;
 }
 
-static const aclTensor* Run950AicoreMultinomialWithReplacement(
-    const aclTensor* selfContiguous, int64_t numsamples, const aclTensor* seedTensor, const aclTensor* offsetTensor,
-    aclOpExecutor* executor) {
+static const aclTensor* Run950AicoreMultinomialWithReplacement(const aclTensor* selfContiguous, int64_t numsamples,
+                                                               const aclTensor* seedTensor,
+                                                               const aclTensor* offsetTensor, aclOpExecutor* executor)
+{
     int64_t dimNum = static_cast<int64_t>(selfContiguous->GetViewShape().GetDimNum());
     int32_t lastDim = static_cast<int32_t>(MakeWrapDim(-1, dimNum));
     const int64_t dim[] = {lastDim};
@@ -301,9 +315,10 @@ static const aclTensor* Run950AicoreMultinomialWithReplacement(
     return multinomialOut;
 }
 
-static const aclTensor* RunDavidMultinomialReplaceMent(
-    const aclTensor* selfContiguous, int64_t numsamples, const aclTensor* randomUniform, const aclTensor* out,
-    aclOpExecutor* executor) {
+static const aclTensor* RunDavidMultinomialReplaceMent(const aclTensor* selfContiguous, int64_t numsamples,
+                                                       const aclTensor* randomUniform, const aclTensor* out,
+                                                       aclOpExecutor* executor)
+{
     // trun weight into probability
     int64_t dimNum = static_cast<int64_t>(selfContiguous->GetViewShape().GetDimNum());
     int64_t lastDim = MakeWrapDim(-1, dimNum);
@@ -311,11 +326,10 @@ static const aclTensor* RunDavidMultinomialReplaceMent(
     auto dimArray = executor->AllocIntArray(dim, 1);
 
     auto dType = selfContiguous->GetDataType();
-    auto computeDtype =
-        (dType == DataType::DT_BF16 || dType == DataType::DT_FLOAT16) ? DataType::DT_FLOAT : dType;
+    auto computeDtype = (dType == DataType::DT_BF16 || dType == DataType::DT_FLOAT16) ? DataType::DT_FLOAT : dType;
 
-    const aclTensor* selfCompute =
-        (dType != computeDtype) ? l0op::Cast(selfContiguous, computeDtype, executor) : selfContiguous;
+    const aclTensor* selfCompute = (dType != computeDtype) ? l0op::Cast(selfContiguous, computeDtype, executor) :
+                                                             selfContiguous;
 
     auto sumSelf = l0op::ReduceSumOp(selfCompute, dimArray, true, executor);
     CHECK_RET(sumSelf != nullptr, nullptr);
@@ -337,8 +351,9 @@ static const aclTensor* RunDavidMultinomialReplaceMent(
     auto unsqueezeAccum = l0op::UnsqueezeNd(accumSelf, -1, executor);
     CHECK_RET(unsqueezeAccum != nullptr, nullptr);
 
-    auto randomCompute = (randomUniform->GetDataType() != computeDtype)
-        ? l0op::Cast(randomUniform, computeDtype, executor) : randomUniform;
+    auto randomCompute = (randomUniform->GetDataType() != computeDtype) ?
+                             l0op::Cast(randomUniform, computeDtype, executor) :
+                             randomUniform;
     CHECK_RET(randomCompute != nullptr, nullptr);
 
     int64_t newShape[dimNum + 1];
@@ -363,8 +378,9 @@ static const aclTensor* RunDavidMultinomialReplaceMent(
     return multinomialOut;
 }
 
-const aclTensor* GetRandomUniformNoReplaceMent(
-    const aclTensor* selfContiguous, const int64_t seed, const int64_t offset, aclOpExecutor* executor) {
+const aclTensor* GetRandomUniformNoReplaceMent(const aclTensor* selfContiguous, const int64_t seed,
+                                               const int64_t offset, aclOpExecutor* executor)
+{
     // exponentialOne = torch.exponential_(1)
     auto inputShape = op::ToShapeVector(selfContiguous->GetViewShape());
     auto inputShapeArray = executor->AllocIntArray(inputShape.data(), inputShape.size());
@@ -377,8 +393,9 @@ const aclTensor* GetRandomUniformNoReplaceMent(
     return randomUniform;
 }
 
-const aclTensor* GetRandomUniformNoReplaceMentTensor(
-    const aclTensor* selfContiguous, const aclTensor* seed, const aclTensor* offset, aclOpExecutor* executor) {
+const aclTensor* GetRandomUniformNoReplaceMentTensor(const aclTensor* selfContiguous, const aclTensor* seed,
+                                                     const aclTensor* offset, aclOpExecutor* executor)
+{
     // concat
     FVector<uint64_t> zeroVector = {static_cast<uint64_t>(0)};
     auto zeroTensor = executor->ConvertToTensor(zeroVector.data(), zeroVector.size(), offset->GetDataType());
@@ -400,9 +417,10 @@ const aclTensor* GetRandomUniformNoReplaceMentTensor(
     return randomUniform;
 }
 
-static const aclTensor* Run950AicoreMultinomialWithoutReplacement(
-    const aclTensor* selfContiguous, int64_t numsamples, const aclTensor* exp1Random, aclOpExecutor* executor) {
-    auto divExponential = l0op::RealDiv(selfContiguous, exp1Random, executor);
+static const aclTensor* Run950AicoreMultinomialWithoutReplacement(const aclTensor* selfContiguous, int64_t numsamples,
+                                                                  const aclTensor* exp1Random, aclOpExecutor* executor)
+{
+    auto divExponential = l0op::RealDivInplace(selfContiguous, exp1Random, executor);
     CHECK_RET(divExponential != nullptr, nullptr);
 
     int64_t dimNum = static_cast<int64_t>(selfContiguous->GetViewShape().GetDimNum());
@@ -421,19 +439,20 @@ static const aclTensor* Run950AicoreMultinomialWithoutReplacement(
     return multinomialOut;
 }
 
-static const aclTensor* RunDavidMultinomialNoReplaceMent(
-    const aclTensor* selfContiguous, int64_t numsamples, const aclTensor* randomUniform, const aclTensor* out,
-    aclOpExecutor* executor) {
+static const aclTensor* RunDavidMultinomialNoReplaceMent(const aclTensor* selfContiguous, int64_t numsamples,
+                                                         const aclTensor* randomUniform, const aclTensor* out,
+                                                         aclOpExecutor* executor)
+{
     auto dType = selfContiguous->GetDataType();
-    auto computeDtype =
-        (dType == DataType::DT_BF16 || dType == DataType::DT_FLOAT16) ? DataType::DT_FLOAT : dType;
+    auto computeDtype = (dType == DataType::DT_BF16 || dType == DataType::DT_FLOAT16) ? DataType::DT_FLOAT : dType;
 
-    const aclTensor* selfCompute =
-        (dType != computeDtype) ? l0op::Cast(selfContiguous, computeDtype, executor) : selfContiguous;
+    const aclTensor* selfCompute = (dType != computeDtype) ? l0op::Cast(selfContiguous, computeDtype, executor) :
+                                                             selfContiguous;
     CHECK_RET(selfCompute != nullptr, nullptr);
 
-    auto randomCompute = (randomUniform->GetDataType() != computeDtype)
-        ? l0op::Cast(randomUniform, computeDtype, executor) : randomUniform;
+    auto randomCompute = (randomUniform->GetDataType() != computeDtype) ?
+                             l0op::Cast(randomUniform, computeDtype, executor) :
+                             randomUniform;
     CHECK_RET(randomCompute != nullptr, nullptr);
 
     const aclTensor* oneTensor;
@@ -477,8 +496,7 @@ static const aclTensor* RunDavidMultinomialNoReplaceMent(
         multinomialOutInt32 = l0op::ArgMaxV2(divExponential, lastDim, true, executor);
         CHECK_RET(multinomialOutInt32 != nullptr, nullptr);
     } else {
-        auto topkOut =
-            l0op::Topk(divExponential, numsamples, lastDim, true, true, op::DataType::DT_INT32, executor);
+        auto topkOut = l0op::Topk(divExponential, numsamples, lastDim, true, true, op::DataType::DT_INT32, executor);
         auto indicesUnsorted = std::get<1>(topkOut);
         CHECK_RET(indicesUnsorted != nullptr, nullptr);
 
@@ -486,8 +504,7 @@ static const aclTensor* RunDavidMultinomialNoReplaceMent(
         auto indicesFloat = l0op::Cast(indicesUnsorted, DataType::DT_FLOAT, executor);
         CHECK_RET(indicesFloat != nullptr, nullptr);
 
-        auto sortedTopk =
-            l0op::Topk(indicesFloat, numsamples, lastDim, false, true, op::DataType::DT_INT32, executor);
+        auto sortedTopk = l0op::Topk(indicesFloat, numsamples, lastDim, false, true, op::DataType::DT_INT32, executor);
         auto sortedValues = std::get<0>(sortedTopk);
         CHECK_RET(sortedValues != nullptr, nullptr);
 
@@ -501,9 +518,10 @@ static const aclTensor* RunDavidMultinomialNoReplaceMent(
     return multinomialOut;
 }
 
-const aclTensor* RunMultinomialNoReplaceMent(
-    const aclTensor* selfContiguous, int64_t numsamples, const aclTensor* randomUniform, const aclTensor* out,
-    aclOpExecutor* executor) {
+const aclTensor* RunMultinomialNoReplaceMent(const aclTensor* selfContiguous, int64_t numsamples,
+                                             const aclTensor* randomUniform, const aclTensor* out,
+                                             aclOpExecutor* executor)
+{
     const float one = 1.0;
     const aclTensor* oneTensor = executor->ConvertToTensor(&one, 1, DataType::DT_FLOAT);
     auto subRandom = l0op::Sub(oneTensor, randomUniform, executor);
@@ -547,9 +565,10 @@ const aclTensor* RunMultinomialNoReplaceMent(
     return multinomialOut;
 }
 
-aclnnStatus aclnnMultinomialGetWorkspaceSize(
-    const aclTensor* self, int64_t numsamples, bool replacement, int64_t seed, int64_t offset, aclTensor* out,
-    uint64_t* workspaceSize, aclOpExecutor** executor) {
+aclnnStatus aclnnMultinomialGetWorkspaceSize(const aclTensor* self, int64_t numsamples, bool replacement, int64_t seed,
+                                             int64_t offset, aclTensor* out, uint64_t* workspaceSize,
+                                             aclOpExecutor** executor)
+{
     OP_CHECK_COMM_INPUT(workspaceSize, executor);
 
     L2_DFX_PHASE_1(aclnnMultinomial, DFX_IN(self, numsamples, replacement, seed, offset), DFX_OUT(out));
@@ -576,20 +595,20 @@ aclnnStatus aclnnMultinomialGetWorkspaceSize(
 
     const aclTensor* multinomialOut;
     if (UseAicpuPath(self, selfSize)) {
-        multinomialOut = l0op::MultinomialWithReplacement(
-            selfContiguous, numsamples, replacement, seed, offset, uniqueExecutor.get());
+        multinomialOut = l0op::MultinomialWithReplacement(selfContiguous, numsamples, replacement, seed, offset,
+                                                          uniqueExecutor.get());
     } else if (!replacement || numsamples == 1) {
         if (IsRegBase()) {
-            auto exp1Random =
-                l0op::Run950AicoreExponentialWithoutReplacement(selfContiguous, seed, offset, 1.0f, uniqueExecutor.get());
+            auto exp1Random = l0op::Run950AicoreExponentialWithoutReplacement(selfContiguous, seed, offset, 1.0f,
+                                                                              uniqueExecutor.get());
             CHECK_RET(exp1Random != nullptr, ACLNN_ERR_PARAM_NULLPTR);
-            multinomialOut = Run950AicoreMultinomialWithoutReplacement(
-                selfContiguous, numsamples, exp1Random, uniqueExecutor.get());
+            multinomialOut = Run950AicoreMultinomialWithoutReplacement(selfContiguous, numsamples, exp1Random,
+                                                                       uniqueExecutor.get());
         } else {
             auto randomUniform = GetRandomUniformNoReplaceMent(selfContiguous, seed, offset, uniqueExecutor.get());
             CHECK_RET(randomUniform != nullptr, ACLNN_ERR_PARAM_NULLPTR);
-            multinomialOut =
-                RunMultinomialNoReplaceMent(selfContiguous, numsamples, randomUniform, out, uniqueExecutor.get());
+            multinomialOut = RunMultinomialNoReplaceMent(selfContiguous, numsamples, randomUniform, out,
+                                                         uniqueExecutor.get());
         }
     } else {
         if (IsRegBase()) {
@@ -597,13 +616,13 @@ aclnnStatus aclnnMultinomialGetWorkspaceSize(
             auto seedTensor = uniqueExecutor->ConvertToTensor(seedList, op::DataType::DT_INT64);
             aclIntArray* offsetList = uniqueExecutor->AllocIntArray(&offset, 1);
             auto offsetTensor = uniqueExecutor->ConvertToTensor(offsetList, op::DataType::DT_INT64);
-            multinomialOut = Run950AicoreMultinomialWithReplacement(
-                selfContiguous, numsamples, seedTensor, offsetTensor, uniqueExecutor.get());
+            multinomialOut = Run950AicoreMultinomialWithReplacement(selfContiguous, numsamples, seedTensor,
+                                                                    offsetTensor, uniqueExecutor.get());
         } else {
             auto randomUniform = GetRandomUniformReplaceMent(numsamples, seed, offset, uniqueExecutor.get());
             CHECK_RET(randomUniform != nullptr, ACLNN_ERR_PARAM_NULLPTR);
-            multinomialOut =
-                RunMultinomialReplaceMent(selfContiguous, numsamples, randomUniform, out, uniqueExecutor.get());
+            multinomialOut = RunMultinomialReplaceMent(selfContiguous, numsamples, randomUniform, out,
+                                                       uniqueExecutor.get());
         }
     }
     CHECK_RET(multinomialOut != nullptr, ACLNN_ERR_PARAM_NULLPTR);
@@ -617,30 +636,38 @@ aclnnStatus aclnnMultinomialGetWorkspaceSize(
     return ACLNN_SUCCESS;
 }
 
-aclnnStatus aclnnMultinomial(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream) {
+aclnnStatus aclnnMultinomial(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)
+{
     L2_DFX_PHASE_2(aclnnMultinomial);
     return CommonOpExecutorRun(workspace, workspaceSize, executor, stream);
 }
 
-static std::pair<const aclTensor*, const aclTensor*> BuildDavidCounter(
-    const aclTensor* seedTensor, const aclTensor* offsetTensor, int64_t offset, aclOpExecutor* executor) {
+static std::pair<const aclTensor*, const aclTensor*> BuildDavidCounter(const aclTensor* seedTensor,
+                                                                       const aclTensor* offsetTensor, int64_t offset,
+                                                                       aclOpExecutor* executor)
+{
     auto seedU64 = l0op::Cast(seedTensor, op::DataType::DT_UINT64, executor);
-    if (seedU64 == nullptr) return {nullptr, nullptr};
+    if (seedU64 == nullptr)
+        return {nullptr, nullptr};
     auto offsetU64 = l0op::Cast(offsetTensor, op::DataType::DT_UINT64, executor);
-    if (offsetU64 == nullptr) return {nullptr, nullptr};
+    if (offsetU64 == nullptr)
+        return {nullptr, nullptr};
 
     FVector<int64_t> offsetVector{0, static_cast<int64_t>(offset)};
     aclIntArray* offsetList = executor->AllocIntArray(offsetVector.data(), 2);
     auto tmpTensor = executor->ConvertToTensor(offsetList, op::DataType::DT_UINT64);
     auto resultAddOut = l0op::Add(offsetU64, tmpTensor, executor);
-    if (resultAddOut == nullptr) return {nullptr, nullptr};
+    if (resultAddOut == nullptr)
+        return {nullptr, nullptr};
 
     return {seedU64, resultAddOut};
 }
 
-static const aclTensor* GetDavidRandomUniformReplaceMentTensor(
-    const aclTensor* selfContiguous, int64_t numsamples, const aclTensor* seedTensor,
-    const aclTensor* offsetTensor, int64_t offset, aclOpExecutor* executor) {
+static const aclTensor* GetDavidRandomUniformReplaceMentTensor(const aclTensor* selfContiguous, int64_t numsamples,
+                                                               const aclTensor* seedTensor,
+                                                               const aclTensor* offsetTensor, int64_t offset,
+                                                               aclOpExecutor* executor)
+{
     auto [seedU64, resultAddOut] = BuildDavidCounter(seedTensor, offsetTensor, offset, executor);
     CHECK_RET(seedU64 != nullptr && resultAddOut != nullptr, nullptr);
 
@@ -648,8 +675,7 @@ static const aclTensor* GetDavidRandomUniformReplaceMentTensor(
     auto randAShapeArray = executor->AllocIntArray(randAShape, 1);
     op::Shape shape;
     op::ToShape(randAShapeArray->GetData(), randAShapeArray->Size(), shape);
-    auto shapeTensor =
-        executor->AllocTensor(shape, selfContiguous->GetDataType(), selfContiguous->GetViewFormat());
+    auto shapeTensor = executor->AllocTensor(shape, selfContiguous->GetDataType(), selfContiguous->GetViewFormat());
     CHECK_RET(shapeTensor != nullptr, nullptr);
 
     int32_t alg = 1;
@@ -658,9 +684,11 @@ static const aclTensor* GetDavidRandomUniformReplaceMentTensor(
     return randomUniform;
 }
 
-static const aclTensor* GetDavidRandomUniformNoReplaceMentTensor(
-    const aclTensor* selfContiguous, const aclTensor* seedTensor, const aclTensor* offsetTensor, int64_t offset,
-    aclOpExecutor* executor) {
+static const aclTensor* GetDavidRandomUniformNoReplaceMentTensor(const aclTensor* selfContiguous,
+                                                                 const aclTensor* seedTensor,
+                                                                 const aclTensor* offsetTensor, int64_t offset,
+                                                                 aclOpExecutor* executor)
+{
     auto [seedU64, resultAddOut] = BuildDavidCounter(seedTensor, offsetTensor, offset, executor);
     CHECK_RET(seedU64 != nullptr && resultAddOut != nullptr, nullptr);
 
@@ -672,7 +700,8 @@ static const aclTensor* GetDavidRandomUniformNoReplaceMentTensor(
     return randomUniform;
 }
 
-static const aclTensor* AddOffsetTensor(const aclTensor* offsetTensor, int64_t offset, aclOpExecutor* executor) {
+static const aclTensor* AddOffsetTensor(const aclTensor* offsetTensor, int64_t offset, aclOpExecutor* executor)
+{
     FVector<int64_t> tmpVector = {static_cast<int64_t>(offset)};
     auto offsetTmpTensor = executor->ConvertToTensor(tmpVector.data(), tmpVector.size(), offsetTensor->GetDataType());
     CHECK_RET(offsetTmpTensor != nullptr, nullptr);
@@ -680,13 +709,15 @@ static const aclTensor* AddOffsetTensor(const aclTensor* offsetTensor, int64_t o
     return offsetAddOut;
 }
 
-aclnnStatus aclnnMultinomialTensorGetWorkspaceSize(const aclTensor *self, int64_t numsamples, bool replacement,
-                                             const aclTensor *seedTensor, const aclTensor *offsetTensor, int64_t offset, aclTensor *out,
-                                             uint64_t *workspaceSize, aclOpExecutor **executor) {
+aclnnStatus aclnnMultinomialTensorGetWorkspaceSize(const aclTensor* self, int64_t numsamples, bool replacement,
+                                                   const aclTensor* seedTensor, const aclTensor* offsetTensor,
+                                                   int64_t offset, aclTensor* out, uint64_t* workspaceSize,
+                                                   aclOpExecutor** executor)
+{
     OP_CHECK_COMM_INPUT(workspaceSize, executor);
 
-    L2_DFX_PHASE_1(
-        aclnnMultinomialTensor, DFX_IN(self, numsamples, replacement, seedTensor, offsetTensor, offset), DFX_OUT(out));
+    L2_DFX_PHASE_1(aclnnMultinomialTensor, DFX_IN(self, numsamples, replacement, seedTensor, offsetTensor, offset),
+                   DFX_OUT(out));
 
     auto ret = CheckParamsTensor(self, numsamples, replacement, seedTensor, offsetTensor, out);
     CHECK_RET(ret == ACLNN_SUCCESS, ret);
@@ -713,37 +744,37 @@ aclnnStatus aclnnMultinomialTensorGetWorkspaceSize(const aclTensor *self, int64_
 
     const aclTensor* multinomialOut;
     if (!CheckSocVersionGe910B() || selfSize <= CPU_NPU_BOUNDARY) {
-        multinomialOut = l0op::MultinomialWithReplacementTensor(
-            selfContiguous, numsamples, replacement, seedTensor, offsetAddOut, uniqueExecutor.get());
+        multinomialOut = l0op::MultinomialWithReplacementTensor(selfContiguous, numsamples, replacement, seedTensor,
+                                                                offsetAddOut, uniqueExecutor.get());
     } else if (!replacement || numsamples == 1) {
         const aclTensor* randomUniform = nullptr;
         if (!IsRegBase()) {
-            randomUniform =
-                GetRandomUniformNoReplaceMentTensor(selfContiguous, seedTensor, offsetAddOut, uniqueExecutor.get());
+            randomUniform = GetRandomUniformNoReplaceMentTensor(selfContiguous, seedTensor, offsetAddOut,
+                                                                uniqueExecutor.get());
             CHECK_RET(randomUniform != nullptr, ACLNN_ERR_INNER_NULLPTR);
-            multinomialOut =
-                RunMultinomialNoReplaceMent(selfContiguous, numsamples, randomUniform, out, uniqueExecutor.get());
+            multinomialOut = RunMultinomialNoReplaceMent(selfContiguous, numsamples, randomUniform, out,
+                                                         uniqueExecutor.get());
         } else {
-            randomUniform = GetDavidRandomUniformNoReplaceMentTensor(
-                selfContiguous, seedTensor, offsetTensor, offset, uniqueExecutor.get());
+            randomUniform = GetDavidRandomUniformNoReplaceMentTensor(selfContiguous, seedTensor, offsetTensor, offset,
+                                                                     uniqueExecutor.get());
             CHECK_RET(randomUniform != nullptr, ACLNN_ERR_INNER_NULLPTR);
-            multinomialOut =
-                RunDavidMultinomialNoReplaceMent(selfContiguous, numsamples, randomUniform, out, uniqueExecutor.get());
+            multinomialOut = RunDavidMultinomialNoReplaceMent(selfContiguous, numsamples, randomUniform, out,
+                                                              uniqueExecutor.get());
         }
     } else {
         const aclTensor* randomUniform = nullptr;
         if (!IsRegBase()) {
-            randomUniform =
-                GetRandomUniformReplaceMentTensor(numsamples, seedTensor, offsetAddOut, uniqueExecutor.get());
+            randomUniform = GetRandomUniformReplaceMentTensor(numsamples, seedTensor, offsetAddOut,
+                                                              uniqueExecutor.get());
             CHECK_RET(randomUniform != nullptr, ACLNN_ERR_INNER_NULLPTR);
-            multinomialOut =
-                RunMultinomialReplaceMent(selfContiguous, numsamples, randomUniform, out, uniqueExecutor.get());
+            multinomialOut = RunMultinomialReplaceMent(selfContiguous, numsamples, randomUniform, out,
+                                                       uniqueExecutor.get());
         } else {
-            randomUniform = GetDavidRandomUniformReplaceMentTensor(
-                selfContiguous, numsamples, seedTensor, offsetTensor, offset, uniqueExecutor.get());
+            randomUniform = GetDavidRandomUniformReplaceMentTensor(selfContiguous, numsamples, seedTensor, offsetTensor,
+                                                                   offset, uniqueExecutor.get());
             CHECK_RET(randomUniform != nullptr, ACLNN_ERR_INNER_NULLPTR);
-            multinomialOut =
-                RunDavidMultinomialReplaceMent(selfContiguous, numsamples, randomUniform, out, uniqueExecutor.get());
+            multinomialOut = RunDavidMultinomialReplaceMent(selfContiguous, numsamples, randomUniform, out,
+                                                            uniqueExecutor.get());
         }
     }
     CHECK_RET(multinomialOut != nullptr, ACLNN_ERR_PARAM_NULLPTR);
@@ -757,7 +788,8 @@ aclnnStatus aclnnMultinomialTensorGetWorkspaceSize(const aclTensor *self, int64_
     return ACLNN_SUCCESS;
 }
 
-aclnnStatus aclnnMultinomialTensor(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream) {
+aclnnStatus aclnnMultinomialTensor(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, aclrtStream stream)
+{
     L2_DFX_PHASE_2(aclnnMultinomialTensor);
     return CommonOpExecutorRun(workspace, workspaceSize, executor, stream);
 }

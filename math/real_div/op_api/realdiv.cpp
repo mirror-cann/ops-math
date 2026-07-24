@@ -162,6 +162,23 @@ static const aclTensor* RealDivKernel(const aclTensor* self, const aclTensor* ot
     }
 }
 
+const aclTensor* RealDivInplace(const aclTensor* self, const aclTensor* divisor, aclOpExecutor* executor)
+{
+    if (self->GetViewShape() != divisor->GetViewShape()) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Inplace RealDiv self shape %s is not equal to divisor shape %s.",
+                op::ToString(self->GetViewShape()).GetString(), op::ToString(divisor->GetViewShape()).GetString());
+        return nullptr;
+    }
+
+    if (self->GetDataType() != divisor->GetDataType()) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Inplace RealDiv does not support an output dtype different from divisor.");
+        return nullptr;
+    }
+
+    auto divOut = const_cast<aclTensor*>(divisor);
+    return RealDivKernel(self, divisor, divOut, executor);
+}
+
 const aclTensor* RealDiv(const aclTensor* self, const aclTensor* other, bool isScalar, aclOpExecutor* executor)
 {
     op::Shape broadcastShape;

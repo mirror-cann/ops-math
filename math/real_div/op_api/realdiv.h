@@ -14,10 +14,11 @@
 #include "opdev/op_executor.h"
 
 namespace l0op {
-    const aclTensor *RealDiv(const aclTensor *self, const aclTensor *other, aclOpExecutor *executor);
-    const aclTensor *RealDiv(const aclTensor *self, const aclTensor *other, const int mode, aclOpExecutor *executor);
-    const aclTensor *RealDiv(const aclTensor *self, const aclTensor *other, bool isScalar, aclOpExecutor *executor);
-    bool IsRealDivSupportNonContiguous(const aclTensor* self);
-}
+const aclTensor* RealDiv(const aclTensor* self, const aclTensor* other, aclOpExecutor* executor);
+const aclTensor* RealDivInplace(const aclTensor* self, const aclTensor* divisor, aclOpExecutor* executor);
+const aclTensor* RealDiv(const aclTensor* self, const aclTensor* other, const int mode, aclOpExecutor* executor);
+const aclTensor* RealDiv(const aclTensor* self, const aclTensor* other, bool isScalar, aclOpExecutor* executor);
+bool IsRealDivSupportNonContiguous(const aclTensor* self);
+} // namespace l0op
 
-#endif  // PTA_NPU_OP_API_INC_LEVEL0_OP_REAL_DIV_OP_H_
+#endif // PTA_NPU_OP_API_INC_LEVEL0_OP_REAL_DIV_OP_H_
