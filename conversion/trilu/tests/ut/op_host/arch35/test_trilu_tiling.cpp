@@ -15,78 +15,60 @@
  * \brief Tiling UT for trilu operator
  */
 
-#include <iostream>
+#include "conversion/triu/op_host/arch35/triu_tiling.h"
 #include <gtest/gtest.h>
+#include <iostream>
 #include "tiling_context_faker.h"
 #include "tiling_case_executor.h"
-#include "../../../../op_kernel/arch35/trilu_tiling_data.h"
 
 using namespace std;
-using namespace ge;
 using namespace Ops::Math;
 
 class TriluTiling : public testing::Test {
 protected:
-    static void SetUpTestCase()
-    {
-        std::cout << "TriluTiling SetUp" << std::endl;
-    }
+    static void SetUpTestCase() { std::cout << "TriluTiling SetUp" << std::endl; }
 
-    static void TearDownTestCase()
-    {
-        std::cout << "TriluTiling TearDown" << std::endl;
-    }
+    static void TearDownTestCase() { std::cout << "TriluTiling TearDown" << std::endl; }
 };
-
-static std::map<std::string, std::string> soc_version_infos = {{"Short_SoC_version", "Ascend950"}};
 
 // float32, upper=1, diagonal=0, shape=(4,4)
 TEST_F(TriluTiling, trilu_float32)
 {
-    struct TriluCompileInfo {
-    } compileInfo;
+    optiling::TriluCompileInfo compileInfo = {64, 245760};
     std::vector<gert::TilingContextPara::OpAttr> attrs;
     attrs.emplace_back("upper", AnyValue::CreateFrom<int64_t>(int64_t(1)));
 
-    gert::TilingContextPara tilingContextPara(
-        "Trilu",
-        {
-            {{{4, 4}, {4, 4}}, ge::DT_FLOAT, ge::FORMAT_ND},  // input x
-        },
-        {
-            {{{4, 4}, {4, 4}}, ge::DT_FLOAT, ge::FORMAT_ND},  // output y
-        },
-        attrs,
-        &compileInfo,
-        64,     // number of cores obtained in the tiling phase
-        262144, // the ubsize obtained in the tiling phase
-        4096);  // specifies the maximum size of the tiling data in the tiling phase
-    uint64_t expectTilingKey = 0;
-    string expectTilingData = "1 16 1024 16 1 4 4 ";
-    std::vector<size_t> expectWorkspaces = {0};
+    gert::TilingContextPara tilingContextPara("Trilu",
+                                              {
+                                                  {{{4, 4}, {4, 4}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  {{{4, 4}, {4, 4}}, ge::DT_FLOAT, ge::FORMAT_ND},
+                                              },
+                                              attrs, &compileInfo);
+    uint64_t expectTilingKey = 134;
+    string expectTilingData = "59392 16 1 1 0 1 1 1 36079 0 0 0 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }
 
 // float16, upper=0, diagonal=0, shape=(4,4)
 TEST_F(TriluTiling, trilu_float16)
 {
-    struct TriluCompileInfo {
-    } compileInfo;
+    optiling::TriluCompileInfo compileInfo = {64, 245760};
     std::vector<gert::TilingContextPara::OpAttr> attrs;
     attrs.emplace_back("upper", AnyValue::CreateFrom<int64_t>(int64_t(0)));
 
-    gert::TilingContextPara tilingContextPara(
-        "Trilu",
-        {
-            {{{4, 4}, {4, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},  // input x
-        },
-        {
-            {{{4, 4}, {4, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},  // output y
-        },
-        attrs,
-        &compileInfo);
-    uint64_t expectTilingKey = 0;
-    string expectTilingData = "1 16 1024 16 0 4 4 ";
-    std::vector<size_t> expectWorkspaces = {0};
+    gert::TilingContextPara tilingContextPara("Trilu",
+                                              {
+                                                  {{{4, 4}, {4, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              },
+                                              {
+                                                  {{{4, 4}, {4, 4}}, ge::DT_FLOAT16, ge::FORMAT_ND},
+                                              },
+                                              attrs, &compileInfo);
+    uint64_t expectTilingKey = 32;
+    string expectTilingData = "59392 16 1 1 0 1 1 1 63281 0 0 0 ";
+    std::vector<size_t> expectWorkspaces = {16777216};
     ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey, expectTilingData, expectWorkspaces);
 }

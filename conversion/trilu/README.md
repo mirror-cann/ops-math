@@ -1,4 +1,4 @@
-# trilu
+# Trilu
 
 ## 产品支持情况
 
@@ -47,7 +47,7 @@ $$
       <td>x</td>
       <td>输入</td>
       <td>待进行三角掩码计算的入参，最后两维为矩阵。</td>
-      <td>FLOAT16、FLOAT、INT32、INT64、INT8、INT16、UINT8、UINT16</td>
+      <td>FLOAT、FLOAT16、DOUBLE、BFLOAT16、INT8、INT16、INT32、INT64、UINT8、UINT16、UINT32、UINT64、BOOL、COMPLEX32、COMPLEX64</td>
       <td>ND</td>
     </tr>
     <tr>
@@ -73,10 +73,11 @@ $$
     </tr>
   </tbody></table>
 
+  - <term>Ascend 950PR/Ascend 950DT</term>：数据类型支持UINT64、INT64、UINT32、 INT32、UINT16、INT16、UINT8、 INT8、FLOAT16、FLOAT32、DOUBLE、BOOL、BFLOAT16、COMPLEX32、COMPLEX64。
+
 ## 约束说明
 
 - 输入输出支持任意维度（ND格式），最后两维构成矩阵。
-- 不支持float64和bool类型。
 
 ## 调用说明
 

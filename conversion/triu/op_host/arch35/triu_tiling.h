@@ -50,8 +50,8 @@ inline static const gert::Shape& EnsureNotScalar(const gert::Shape& in_shape)
     return in_shape;
 }
 
-int64_t GetEltNumPerCore(
-    int64_t availableUBSize, int32_t availableCoreNum, int64_t unitNum, uint8_t dtypeBytes, int64_t totalEltNum);
+int64_t GetEltNumPerCore(int64_t availableUBSize, int32_t availableCoreNum, int64_t unitNum, uint8_t dtypeBytes,
+                         int64_t totalEltNum);
 int64_t GetAlignedSize(int64_t unitSize);
 void PrintInfo(gert::TilingContext* context);
 ge::graphStatus TilingPrepare4Trilu(gert::TilingParseContext* context);
@@ -73,8 +73,8 @@ int64_t GetMask(int64_t row, int64_t col, int64_t diagonal)
 }
 
 template <bool upper>
-ge::graphStatus SetTilingMode(
-    const optiling::TriluCompileInfo* compileInfo, optiling::TriluTilingParams* params, uint8_t dtypeBytes)
+ge::graphStatus SetTilingMode(const optiling::TriluCompileInfo* compileInfo, optiling::TriluTilingParams* params,
+                              uint8_t dtypeBytes)
 {
     auto diag = params->diagonal;
     auto row = params->row;
@@ -110,31 +110,30 @@ ge::graphStatus SetTilingMode(
 }
 
 template <bool upper>
-ge::graphStatus DoTiling(
-    const optiling::TriluCompileInfo* compileInfo, optiling::TriluTilingParams* params, uint8_t dtypeBytes)
+ge::graphStatus DoTiling(const optiling::TriluCompileInfo* compileInfo, optiling::TriluTilingParams* params,
+                         uint8_t dtypeBytes)
 {
     if (dtypeBytes == 0) {
         return ge::GRAPH_FAILED;
     }
     auto eltNumPerBlock = BLOCK_BYTES / dtypeBytes;
-    int64_t totalEltNum =
-        (params->matrixNum * params->row * params->col + eltNumPerBlock - 1) / eltNumPerBlock * eltNumPerBlock;
+    int64_t totalEltNum = (params->matrixNum * params->row * params->col + eltNumPerBlock - 1) / eltNumPerBlock *
+                          eltNumPerBlock;
 
     switch (params->tilingMode) {
         case TILING_MODE_OUTPUT_ZERO:
         case TILING_MODE_OUTPUT_INPUT: {
-            params->eltNumPerCore = GetEltNumPerCore(
-                compileInfo->availableUBSize, compileInfo->availableAICoreNum, BLOCK_BYTES / dtypeBytes, dtypeBytes,
-                totalEltNum);
+            params->eltNumPerCore = GetEltNumPerCore(compileInfo->availableUBSize, compileInfo->availableAICoreNum,
+                                                     BLOCK_BYTES / dtypeBytes, dtypeBytes, totalEltNum);
             params->taskNum = (totalEltNum + params->eltNumPerCore - 1) / params->eltNumPerCore;
             return ge::GRAPH_SUCCESS;
         }
         case TILING_MODE_SMALL_MATRIX: {
             params->mask = GetMask<upper>(params->row, params->col, params->diagonal);
             int64_t alignedMatrix = GetAlignedSize(params->row * params->col * dtypeBytes);
-            params->eltNumPerCore = GetEltNumPerCore(
-                compileInfo->availableUBSize, compileInfo->availableAICoreNum,
-                alignedMatrix * params->row * params->col, dtypeBytes, totalEltNum);
+            params->eltNumPerCore = GetEltNumPerCore(compileInfo->availableUBSize, compileInfo->availableAICoreNum,
+                                                     alignedMatrix * params->row * params->col, dtypeBytes,
+                                                     totalEltNum);
             params->taskNum = (totalEltNum + params->eltNumPerCore - 1) / params->eltNumPerCore;
             return ge::GRAPH_SUCCESS;
         }
@@ -142,9 +141,8 @@ ge::graphStatus DoTiling(
         case TILING_MODE_NORMAL:
         case TILING_MODE_BIG_ROW: {
             int64_t alignedRow = GetAlignedSize(params->col * dtypeBytes);
-            params->eltNumPerCore = GetEltNumPerCore(
-                compileInfo->availableUBSize, compileInfo->availableAICoreNum, alignedRow * params->col, dtypeBytes,
-                totalEltNum);
+            params->eltNumPerCore = GetEltNumPerCore(compileInfo->availableUBSize, compileInfo->availableAICoreNum,
+                                                     alignedRow * params->col, dtypeBytes, totalEltNum);
             if (params->eltNumPerCore == 0) { // the aligned row is too large to put into ub, tiling_mode fallback to 5
                 params->tilingMode = TILING_MODE_BIG_ROW;
                 params->eltNumPerCore = params->col;
@@ -171,6 +169,11 @@ void GetDiagonalValue(gert::TilingContext* context, int64_t& diag)
     } else {
         auto diagTensorPtr = context->GetOptionalInputTensor(INDEX_K);
         if (diagTensorPtr) {
+            if (diagTensorPtr->GetDataType() == ge::DT_INT32) {
+                const int32_t* kPtr = diagTensorPtr->GetData<int32_t>();
+                diag = kPtr ? static_cast<int64_t>(*kPtr) : 0;
+                return;
+            }
             diagPtr = diagTensorPtr->GetData<int64_t>();
         }
     }
@@ -189,20 +192,18 @@ ge::graphStatus Tiling4Trilu(gert::TilingContext* context)
     OP_CHECK_NULL_WITH_CONTEXT(context, xDesc);
     auto xDtype = xDesc->GetDataType();
     auto xDtypeBytes = GetSizeByDataType(xDtype);
-    OP_CHECK_IF(
-        xDtypeBytes == 0, OP_LOGE_FOR_INVALID_DTYPE_WITH_REASON(context->GetNodeName(), "x",
-            Ops::Base::ToString(xDtype).c_str(),
-            "The dtype size of x must be greater than 0."),
-        return ge::GRAPH_FAILED);
+    OP_CHECK_IF(xDtypeBytes == 0,
+                OP_LOGE_FOR_INVALID_DTYPE_WITH_REASON(context->GetNodeName(), "x", Ops::Base::ToString(xDtype).c_str(),
+                                                      "The dtype size of x must be greater than 0."),
+                return ge::GRAPH_FAILED);
     auto xShape = context->GetInputShape(INDEX_X);
     OP_CHECK_NULL_WITH_CONTEXT(context, xShape);
     const auto& xOriginShape = EnsureNotScalar(xShape->GetOriginShape());
     auto dimNum = xOriginShape.GetDimNum();
-    OP_CHECK_IF(
-        dimNum < 2, OP_LOGE_FOR_INVALID_SHAPEDIM_WITH_REASON(context->GetNodeName(), "x",
-            std::to_string(dimNum).c_str(),
-            "The shape dim of x must be greater than or equal to 2."),
-        return ge::GRAPH_FAILED);
+    OP_CHECK_IF(dimNum < 2,
+                OP_LOGE_FOR_INVALID_SHAPEDIM_WITH_REASON(context->GetNodeName(), "x", std::to_string(dimNum).c_str(),
+                                                         "The shape dim of x must be greater than or equal to 2."),
+                return ge::GRAPH_FAILED);
     auto row = xOriginShape.GetDim(dimNum - 2);
     auto col = xOriginShape.GetDim(dimNum - 1);
     int64_t matrixNum = 1;
