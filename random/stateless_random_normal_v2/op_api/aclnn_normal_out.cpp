@@ -220,11 +220,38 @@ aclnnStatus CommonLogicGeneralNormal(const aclTensor* mean, const aclTensor* std
         // offset转化为counter
         FVector<int64_t, op::MAX_DIM_NUM> counter_vec = {0, offset};
         auto counterArr = (uniqueExecutor.get())->AllocIntArray(counter_vec.data(), counter_vec.size());
-        auto meanFP32 = l0op::Cast(mean, DataType::DT_FLOAT, uniqueExecutor.get());
-        CHECK_RET(meanFP32 != nullptr, ACLNN_ERR_INNER_NULLPTR);
-        auto stdFP32 = l0op::Cast(std, DataType::DT_FLOAT, uniqueExecutor.get());
-        CHECK_RET(stdFP32 != nullptr, ACLNN_ERR_INNER_NULLPTR);
-        addOut = l0op::StatelessRandomNormalV3(self, keyArr, counterArr, meanFP32, stdFP32, uniqueExecutor.get());
+        // V3 kernel 要求 mean/std 参数为 DT_FLOAT
+        auto meanCasted = l0op::Cast(mean, DataType::DT_FLOAT, uniqueExecutor.get());
+        CHECK_RET(meanCasted != nullptr, ACLNN_ERR_INNER_NULLPTR);
+        auto stdCasted = l0op::Cast(std, DataType::DT_FLOAT, uniqueExecutor.get());
+        CHECK_RET(stdCasted != nullptr, ACLNN_ERR_INNER_NULLPTR);
+
+        // V3 kernel 不支持广播，需要将 shape 与 out 不一致的多元素 tensor 广播到 out shape
+        // Size()==1 的 tensor（scalar 转换而来）由 V3 kernel 的 scalar 路径原生处理，无需广播
+        // self 需要单独广播以保持原始 dtype（决定 V3 kernel 的计算精度）
+        bool selfNeedBcast = self->GetViewShape() != out->GetViewShape();
+        bool meanNeedBcast = meanCasted->GetViewShape() != out->GetViewShape() && mean->Size() > 1;
+        bool stdNeedBcast = stdCasted->GetViewShape() != out->GetViewShape() && std->Size() > 1;
+        if (selfNeedBcast || meanNeedBcast || stdNeedBcast) {
+            op::FVector<int64_t, op::MAX_DIM_NUM> outDims = op::ToShapeVector(out->GetViewShape());
+            auto outShapeArray = uniqueExecutor.get()->AllocIntArray(outDims.data(), outDims.size());
+            CHECK_RET(outShapeArray != nullptr, ACLNN_ERR_INNER_NULLPTR);
+
+            if (selfNeedBcast) {
+                auto selfBroadcast = l0op::BroadcastTo(self, outShapeArray, uniqueExecutor.get());
+                CHECK_RET(selfBroadcast != nullptr, ACLNN_ERR_INNER_NULLPTR);
+                self = const_cast<aclTensor*>(selfBroadcast);
+            }
+            if (meanNeedBcast) {
+                meanCasted = l0op::BroadcastTo(meanCasted, outShapeArray, uniqueExecutor.get());
+                CHECK_RET(meanCasted != nullptr, ACLNN_ERR_INNER_NULLPTR);
+            }
+            if (stdNeedBcast) {
+                stdCasted = l0op::BroadcastTo(stdCasted, outShapeArray, uniqueExecutor.get());
+                CHECK_RET(stdCasted != nullptr, ACLNN_ERR_INNER_NULLPTR);
+            }
+        }
+        addOut = l0op::StatelessRandomNormalV3(self, keyArr, counterArr, meanCasted, stdCasted, uniqueExecutor.get());
     } else if (GetCurrentPlatformInfo().GetCurNpuArch() == NpuArch::DAV_3510 &&
                self->GetDataType() != DataType::DT_DOUBLE) {
         if (scalarMode == ScalarMode::TensorTensor || scalarMode == ScalarMode::ScalarTensor) {
