@@ -53,7 +53,7 @@ $$y=erfc(x)=1-\frac{2}{\sqrt{\pi } } \int_{0}^{x} e^{-t^{2} } \mathrm{d}t$$
     </tr>
   </tbody></table>
 
-- Atlas A2 训练系列产品/Atlas A2 推理系列产品、Atlas 训练系列产品：不支持BFLOAT16数据类型。
+- Atlas A2 训练系列产品/Atlas A2 推理系列产品、Atlas 推理系列产品、Atlas 训练系列产品：不支持BFLOAT16数据类型。
 
 ## 约束说明
 
