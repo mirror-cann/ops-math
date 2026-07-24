@@ -978,6 +978,16 @@
   </tr>
   <tr>
     <td>math</td>
+    <td><a href="../../math/inplace_top_k_distance/README.md">inplace_top_k_distance</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>×</td>
+    <td>√</td>
+    <td>AI CPU</td>
+    <td>将一组已排序的距离数据与一组新的距离数据合并重排后取前k个数据，结果原地更新到输入中。</td>
+  </tr>
+  <tr>
+    <td>math</td>
     <td><a href="../../math/inv/README.md">inv</a></td>
     <td>√</td>
     <td>√</td>
@@ -1435,6 +1445,16 @@
     <td> </td>
     <td> </td>
     <td> </td>
+  </tr>
+  <tr>
+    <td>math</td>
+    <td><a href="../../math/prod_env_mat_a_calc_rij/README.md">prod_env_mat_a_calc_rij</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>×</td>
+    <td>√</td>
+    <td>AI CPU</td>
+    <td>DeepMD环境矩阵的近邻计算，输出邻居索引、平方距离与中心原子指向邻居的位移向量。</td>
   </tr>
   <tr>
     <td>math</td>
@@ -2045,6 +2065,16 @@
     <td>√</td>
     <td>AI Core/AI CPU</td>
     <td>该算子暂无Ascend C代码实现，欢迎开发者补充贡献，贡献方式参考<a href="../../CONTRIBUTING.md">贡献指南</a>。</td>
+  </tr>
+  <tr>
+    <td>math</td>
+    <td><a href="../../math/top_k_pq_distance_v2/README.md">top_k_pq_distance_v2</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>×</td>
+    <td>√</td>
+    <td>AI CPU</td>
+    <td>借助分组极值剪枝，在最后一维上查找k个最大或最小的元素及其索引。</td>
   </tr>
   <tr>
     <td>math</td>
